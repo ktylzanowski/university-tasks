@@ -1,7 +1,7 @@
 import math
 
 
-def divSum(x, y):
+def div_sum(x, y):
     list_of = {}
 
     if x > y:
@@ -18,18 +18,18 @@ def divSum(x, y):
         for i in range(2, int(math.sqrt(j)+1)):
             if j % i == 0:
                 if i == (j / i):
-                    result = result + i
+                    result += i
                 else:
-                    result = result + (i + j / i)
+                    result += i + j / i
         list_of[j] = int(result+1)
     return check_for_friendly(list_of)
 
 
-def check_for_friendly(dict):
+def check_for_friendly(dictionary):
     new_dict = {}
-    for key, value in dict.items():
+    for key, value in dictionary.items():
         try:
-            if key == dict[value] and key != value:
+            if key == dictionary[value] and key != value:
                 if value in new_dict:
                     continue
                 new_dict[key] = value
