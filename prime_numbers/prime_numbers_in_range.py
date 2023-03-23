@@ -1,3 +1,6 @@
+from math import sqrt
+
+
 def prime_numbers(lower, upper):
     if lower > upper:
         lower, upper = upper, lower
@@ -5,8 +8,8 @@ def prime_numbers(lower, upper):
     list_of_numbers = []
     for num in range(lower, upper + 1):
         if num > 1:
-            for i in range(2, num):
-                if (num % i) == 0:
+            for i in range(2, int(sqrt(num))+1):
+                if num % i == 0:
                     break
             else:
                 list_of_numbers.append(num)
