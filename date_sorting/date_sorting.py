@@ -16,8 +16,13 @@ def bubblesort(elements):
 
 def date_into_dict(dates):
     dict_of_days = {}
+    j = 0
     for i in range(len(dates)):
-        date = datetime.datetime.strptime(dates[i], '%d/%m/%Y').date()
-        dict_of_days[i] = {'day': date.day, 'month': date.month, 'year': date.year}
+        try:
+            date = datetime.datetime.strptime(dates[i], '%d/%m/%Y').date()
+            dict_of_days[i-j] = {'day': date.day, 'month': date.month, 'year': date.year}
+        except ValueError:
+            j += 1
     return bubblesort(dict_of_days)
+
 
