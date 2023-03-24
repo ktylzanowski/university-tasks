@@ -30,9 +30,8 @@ def check_for_friendly(dictionary):
     for key, value in dictionary.items():
         try:
             if key == dictionary[value] and key != value:
-                if value in new_dict:
-                    continue
-                new_dict[key] = value
+                if value not in new_dict:
+                    new_dict[key] = value
         except KeyError:
             pass
     return new_dict
