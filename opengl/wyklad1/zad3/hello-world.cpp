@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     glutInitContextVersion(3, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitWindowSize(gWidth, gHeight);
-    glutCreateWindow("N trojkatow: gl_PrimitiveID + gl_FragCoord");
+    glutCreateWindow("OPENGL");
 
     glutDisplayFunc(DisplayScene);
     glutReshapeFunc(Reshape);
