@@ -1,217 +1,156 @@
-// -------------------------------------------------
-// Programowanie grafiki 3D w OpenGL / UG
-// -------------------------------------------------
-// Prosty szablon aplikacji w OpenGLu
-// Rozbudowany o przekazywanie dwoch atrybutow:
-// - wspolrzednych wierzcholkow
-// - kolorow wierzcholkow
-// -------------------------------------------------
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
-
-// Funkcje pomocnicze
+#include <stdlib.h>
+#include <time.h>
 #include "utilities.hpp"
 
+GLuint idProgram;
+GLuint idVAO;
+GLuint idVBO_coord;
+GLuint idVBO_color;
+#define N 100
 
-// ---------------------------------------
-// Identyfikatory obiektow OpenGL
+GLfloat vertices[N * 2 * 6];
 
-GLuint idProgram;	// poroku/programu
-GLuint idVAO;		// tablicy wierzcholkow
-GLuint idVBO_coord; // bufora na wspolrzedne wierzcholkow
-GLuint idVBO_color; // bufora na kolory wierzcholkow
+GLfloat colors[N * 3 * 6];
 
-
-// ---------------------------------------
-// Dane geometrii
-
-// Wspolrzedne wierzchokow
-// po dwa floaty na wierzcholek
-// wspolrzedne w zakresie -1.0 do 1.0
-GLfloat triangles[6*2] =
-{
-	-0.8, -0.8,	// wierzcholek 0
-	 0.0, -0.8, // wierzcholek 1
-	-0.4,  0.0, // itd.
-
-	 0.0,  0.0,
-	 0.8,  0.0,
-	 0.4,  0.8
-};
-
-// Kolory wierzcholkow
-// po trzy floaty na wierzcholek
-// kolory w palecie RGB w zakresie 0.0 - 1.0
-GLfloat colors[6*3] =
-{
-	1.0, 0.0, 0.0, // wierzcholek 0
-	1.0, 0.0, 0.0, // wierzcholek 1
-	1.0, 0.0, 0.0, // itd.
-
-	0.0, 0.0, 1.0,
-	0.0, 0.0, 1.0,
-	0.0, 0.0, 1.0
-};
-
-
-// ---------------------------------------
 void DisplayScene()
 {
-	// ---------------------------
-	// Etap (5) rendering
-	// ---------------------------
-	glClear( GL_COLOR_BUFFER_BIT );
+	glClear(GL_COLOR_BUFFER_BIT);
 
-	// Wlaczenie potoku
-	glUseProgram( idProgram );
+	glUseProgram(idProgram);
 
-		// Aktywacja tablicy wierzcholkow (VAO)
-		glBindVertexArray( idVAO );
-		// Uruchomienie aktualnego potoku na aktualnej tablicy wierzcholkow
-		// Renderowanie za pomoca GL_TRIANGLES wierzhcholkow 6 poczawszy od 0
-		glDrawArrays( GL_TRIANGLES, 0, 6 );
-		// Dezaktywujemy VAO
-		glBindVertexArray( 0 );
+	glBindVertexArray(idVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 6 * N);
+	glBindVertexArray(0);
 
-	// Dezaktywujemy potok
-	glUseProgram( 0 );
-
+	glUseProgram(0);
 
 	glutSwapBuffers();
 }
 
-// ---------------------------------------
 void Initialize()
 {
-	// -------------------------------------------------
-	// Etap (2) przeslanie danych wierzcholków do OpenGL
-	// -------------------------------------------------
+    glGenVertexArrays(1, &idVAO);
+    glBindVertexArray(idVAO);
 
-	// Tworzymy tablice wierzcholkow (VAO)
-	glGenVertexArrays( 1, &idVAO );
-	glBindVertexArray( idVAO );
-		// Tworzymy bufor na wspolrzedne wierzcholkow
-		glGenBuffers( 1, &idVBO_coord );
-		glBindBuffer( GL_ARRAY_BUFFER, idVBO_coord );
-		glBufferData( GL_ARRAY_BUFFER, sizeof( GLfloat ) * 2*6, triangles, GL_STATIC_DRAW );
-		// Ustawienie danych bufora pod atrybut o numerze 0
-		// ten sam ustawiony w vertex shaderze
-		glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, 0, NULL );
-		glEnableVertexAttribArray( 0 );
+ 
+    glGenBuffers(1, &idVBO_coord);
+    glBindBuffer(GL_ARRAY_BUFFER, idVBO_coord);
 
-		// Tworzymy bufor na kolory wierzcholkow
-		glGenBuffers( 1, &idVBO_color );
-		glBindBuffer( GL_ARRAY_BUFFER, idVBO_color );
-		glBufferData( GL_ARRAY_BUFFER, sizeof( GLfloat ) * 3*6, colors, GL_STATIC_DRAW );
-		// Ustawienie danych bufora pod atrybut o numerze 1
-		// ten sam ustawiony w vertex shaderze
-		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 0, NULL );
-		glEnableVertexAttribArray( 1 );
-
-	glBindVertexArray( 0 );
-
-
-	// ---------------------------------------
-	// Etap (3) stworzenie potoku graficznego
-	// ---------------------------------------
-	idProgram = glCreateProgram();
-		glAttachShader( idProgram, LoadShader(GL_VERTEX_SHADER, "vertex.glsl"));
-		glAttachShader( idProgram, LoadShader(GL_FRAGMENT_SHADER, "fragment.glsl"));
-	LinkAndValidateProgram( idProgram );
-
-
-
-	// -----------------------------------------
-	// Etap (4) ustawienie maszyny stanow OpenGL
-	// -----------------------------------------
-
-	// ustawienie koloru czyszczenia ramki koloru
-	glClearColor( 0.9f, 0.9f, 0.9f, 0.9f );
-
-}
-
-// ---------------------------------------------------
-// Funkcja wywolywana podczas tworzenia okna aplikacji
-// oraz zmiany jego rozdzielczosci
-void Reshape( int width, int height )
-{
-	glViewport( 0, 0, width, height );
-}
-
-
-
-// ---------------------------------------------------
-// Funkcja wywolywana podczas wcisniecia klawisza ASCII
-void Keyboard( unsigned char key, int x, int y )
-{
-    switch(key)
+    int v = 0;
+    for (int k = 0; k < N; ++k)
     {
-		case 27:	// ESC key
-			// opuszczamy glowna petle
-			glutLeaveMainLoop();
-			break;
+        float cx = -0.9f + 1.8f * (float)rand() / (float)RAND_MAX;
+        float cy = -0.9f + 1.8f * (float)rand() / (float)RAND_MAX;
+        float s  = 0.03f + 0.07f * (float)rand() / (float)RAND_MAX;
 
-		case ' ':	// Space key
-			printf("SPACE!\n");
-			// ponowne renderowanie
-			glutPostRedisplay();
-			break;
+        float xL = cx - s, xR = cx + s;
+        float yB = cy - s, yT = cy + s;
 
-		case 'x':
-			// opuszczamy glowna petle
-			glutLeaveMainLoop();
-			break;
+        vertices[v++] = xL; vertices[v++] = yB;
+        vertices[v++] = xR; vertices[v++] = yB;
+        vertices[v++] = xR; vertices[v++] = yT;
+        vertices[v++] = xL; vertices[v++] = yB;
+        vertices[v++] = xR; vertices[v++] = yT;
+        vertices[v++] = xL; vertices[v++] = yT;
     }
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    glGenBuffers(1, &idVBO_color);
+    glBindBuffer(GL_ARRAY_BUFFER, idVBO_color);
+
+    int c = 0;
+    for (int k = 0; k < N; ++k)
+    {
+        float r = (float)rand() / (float)RAND_MAX;
+        float g = (float)rand() / (float)RAND_MAX;
+        float b = (float)rand() / (float)RAND_MAX;
+
+        for (int j = 0; j < 6; ++j)
+        {
+            colors[c++] = r;
+            colors[c++] = g;
+            colors[c++] = b;
+        }
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    idProgram = glCreateProgram();
+    glAttachShader(idProgram, LoadShader(GL_VERTEX_SHADER, "vertex.glsl"));
+    glAttachShader(idProgram, LoadShader(GL_FRAGMENT_SHADER, "fragment.glsl"));
+    LinkAndValidateProgram(idProgram);
+
+    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
 }
 
-
-// ---------------------------------------------------
-int main( int argc, char *argv[] )
+void Reshape(int width, int height)
 {
-	// -----------------------------------------------
-	// Etap (1) utworzynie kontektu OpenGLa i okna
-	// aplikacji, rejestracja funkcji zwrotnych
-	// -----------------------------------------------
+	glViewport(0, 0, width, height);
+}
 
-	// GLUT
-	glutInit( &argc, argv );
-	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB );
-	glutInitContextVersion( 3, 3 );
-	glutInitContextProfile( GLUT_CORE_PROFILE );
-	glutInitWindowSize( 500, 500 );
-	glutCreateWindow( "Szablon programu w OpenGL" );
-	glutDisplayFunc( DisplayScene );
-	glutReshapeFunc( Reshape );
-	glutKeyboardFunc( Keyboard );
+void Keyboard(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+	case 27:
+		glutLeaveMainLoop();
+		break;
 
+	case ' ':
+		printf("SPACE!\n");
+		glutPostRedisplay();
+		break;
 
-	// GLEW
+	case 'x':
+		glutLeaveMainLoop();
+		break;
+	}
+}
+
+int main(int argc, char *argv[])
+{
+	srand(time(NULL));
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+	glutInitContextVersion(3, 3);
+	glutInitContextProfile(GLUT_CORE_PROFILE);
+	glutInitWindowSize(500, 500);
+	glutCreateWindow("Szablon programu w OpenGL");
+	glutDisplayFunc(DisplayScene);
+	glutReshapeFunc(Reshape);
+	glutKeyboardFunc(Keyboard);
+
 	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
-	if( GLEW_OK != err ) {
+	if (GLEW_OK != err)
+	{
 		printf("GLEW Error\n");
 		exit(1);
 	}
 
-	// OpenGL
-	if( !GLEW_VERSION_3_3 ) {
+	if (!GLEW_VERSION_3_3)
+	{
 		printf("Brak OpenGL 3.3!\n");
 		exit(1);
 	}
 
-
-	// Inicjalizacja
 	Initialize();
 
-	// Rendering
 	glutMainLoop();
 
-
-	// Cleaning
-	glDeleteProgram( idProgram );
-	glDeleteVertexArrays( 1, &idVBO_coord );
-	glDeleteVertexArrays( 1, &idVAO );
+	glDeleteProgram(idProgram);
+	glDeleteVertexArrays(1, &idVBO_coord);
+	glDeleteVertexArrays(1, &idVAO);
 
 	return 0;
 }

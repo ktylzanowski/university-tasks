@@ -1,12 +1,7 @@
-// ---------------------------------------------------
-// Funkcje pomocnicze, w szczegolnosci do wczytywania
-// plikow shaderow
-// ---------------------------------------------------
 #ifndef __UTILITIES_HPP
 #define __UTILITIES_HPP
 
 
-// ---------------------------------------------
 unsigned long getFileLength(const char *filename)
 {
 	FILE *file = fopen(filename, "r");
@@ -26,8 +21,6 @@ unsigned long getFileLength(const char *filename)
 }
 
 
-
-// ---------------------------------------------
 GLchar * LoadShaderFile(const char* filename)
 {
 	FILE *file = fopen(filename, "r");
@@ -64,7 +57,7 @@ GLchar * LoadShaderFile(const char* filename)
 	return ShaderSource;
 }
 
-// ---------------------------------------
+
 void CheckForErrors_Shader(GLuint shader)
 {
 	GLint status;
@@ -81,7 +74,6 @@ void CheckForErrors_Shader(GLuint shader)
 	}
 }
 
-// ---------------------------------------
 void CheckForErrors_Program(GLuint program, GLenum mode)
 {
 	GLint status;
@@ -109,13 +101,10 @@ void CheckForErrors_Program(GLuint program, GLenum mode)
 	}
 }
 
-// ---------------------------------------
 GLuint LoadShader( GLuint MODE, const char *filename  )
 {
-	// utworzenie obiektu shadera
 	GLuint shader = glCreateShader( MODE );
 
-	// Wczytanie kodu shadera z pliku
 	GLchar *code = LoadShaderFile(filename);
 
 	glShaderSource( shader, 1, &code, NULL );
@@ -126,15 +115,12 @@ GLuint LoadShader( GLuint MODE, const char *filename  )
 	return shader;
 }
 
-// ---------------------------------------
 void LinkAndValidateProgram(GLuint program)
 {
-    // Konsolidacja programu
     glLinkProgram( program );
 	CheckForErrors_Program(program, GL_LINK_STATUS);
 
-	// Walidacja programu
-    glValidateProgram( program );
+	glValidateProgram( program );
     CheckForErrors_Program(program, GL_VALIDATE_STATUS);
 }
 
