@@ -5,40 +5,21 @@
 #include <time.h>
 #include "utilities.hpp"
 
-GLuint idProgram;
-GLuint idVAO;
-GLuint idVBO_coord;
-GLuint idVBO_color;
 #define N 100
+#define VERTS_PER_QUAD 6
 
-GLfloat vertices[N * 2 * 6];
+GLuint gProgram = 0;
+GLuint vaoSolid = 0, vaoGradient = 0;
+GLuint vboCoord = 0, vboColorSolid = 0, vboColorGrad = 0;
 
-GLfloat colors[N * 3 * 6];
+int gScene = 1;
 
-void DisplayScene()
+GLfloat vertices[N * VERTS_PER_QUAD * 2];
+GLfloat colorsSolid[N * VERTS_PER_QUAD * 3];
+GLfloat colorsGrad[N * VERTS_PER_QUAD * 3];
+
+void BuildGeometry()
 {
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glUseProgram(idProgram);
-
-	glBindVertexArray(idVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 6 * N);
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glutSwapBuffers();
-}
-
-void Initialize()
-{
-    glGenVertexArrays(1, &idVAO);
-    glBindVertexArray(idVAO);
-
- 
-    glGenBuffers(1, &idVBO_coord);
-    glBindBuffer(GL_ARRAY_BUFFER, idVBO_coord);
-
     int v = 0;
     for (int k = 0; k < N; ++k)
     {
@@ -52,105 +33,179 @@ void Initialize()
         vertices[v++] = xL; vertices[v++] = yB;
         vertices[v++] = xR; vertices[v++] = yB;
         vertices[v++] = xR; vertices[v++] = yT;
+
         vertices[v++] = xL; vertices[v++] = yB;
         vertices[v++] = xR; vertices[v++] = yT;
         vertices[v++] = xL; vertices[v++] = yT;
     }
+}
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-    glGenBuffers(1, &idVBO_color);
-    glBindBuffer(GL_ARRAY_BUFFER, idVBO_color);
-
-    int c = 0;
+void BuildColors()
+{
+    int c1 = 0;
     for (int k = 0; k < N; ++k)
     {
         float r = (float)rand() / (float)RAND_MAX;
         float g = (float)rand() / (float)RAND_MAX;
         float b = (float)rand() / (float)RAND_MAX;
 
-        for (int j = 0; j < 6; ++j)
+        for (int j = 0; j < VERTS_PER_QUAD; ++j)
         {
-            colors[c++] = r;
-            colors[c++] = g;
-            colors[c++] = b;
+            colorsSolid[c1++] = r;
+            colorsSolid[c1++] = g;
+            colorsSolid[c1++] = b;
         }
     }
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    int c2 = 0;
+    for (int i = 0; i < N * VERTS_PER_QUAD; ++i)
+    {
+        colorsGrad[c2++] = (float)rand() / (float)RAND_MAX;
+        colorsGrad[c2++] = (float)rand() / (float)RAND_MAX;
+        colorsGrad[c2++] = (float)rand() / (float)RAND_MAX;
+    }
+}
+
+static void SetupVAO(GLuint& vao, GLuint coordVBO, GLuint colorVBO)
+{
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, coordVBO);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
+}
 
-    idProgram = glCreateProgram();
-    glAttachShader(idProgram, LoadShader(GL_VERTEX_SHADER, "vertex.glsl"));
-    glAttachShader(idProgram, LoadShader(GL_FRAGMENT_SHADER, "fragment.glsl"));
-    LinkAndValidateProgram(idProgram);
+void Initialize()
+{
+    srand((unsigned int)time(NULL));
 
-    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+    BuildGeometry();
+    BuildColors();
+
+    gProgram = glCreateProgram();
+    glAttachShader(gProgram, LoadShader(GL_VERTEX_SHADER,   "vertex.glsl"));
+    glAttachShader(gProgram, LoadShader(GL_FRAGMENT_SHADER, "fragment.glsl"));
+    LinkAndValidateProgram(gProgram);
+
+    glGenBuffers(1, &vboCoord);
+    glBindBuffer(GL_ARRAY_BUFFER, vboCoord);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &vboColorSolid);
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorSolid);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colorsSolid), colorsSolid, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &vboColorGrad);
+    glBindBuffer(GL_ARRAY_BUFFER, vboColorGrad);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colorsGrad), colorsGrad, GL_STATIC_DRAW);
+
+    SetupVAO(vaoSolid,    vboCoord, vboColorSolid);
+    SetupVAO(vaoGradient, vboCoord, vboColorGrad);
+
+    glClearColor(0.92f, 0.92f, 0.95f, 1.0f);
+}
+
+void DrawSceneSolid()
+{
+    glUseProgram(gProgram);
+    glBindVertexArray(vaoSolid);
+    glDrawArrays(GL_TRIANGLES, 0, N * VERTS_PER_QUAD);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void DrawSceneGradient()
+{
+    glUseProgram(gProgram);
+    glBindVertexArray(vaoGradient);
+    glDrawArrays(GL_TRIANGLES, 0, N * VERTS_PER_QUAD);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void DisplayScene()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    switch (gScene)
+    {
+        case 1:
+            DrawSceneSolid();
+            break;
+        case 2:
+        case 3:
+            DrawSceneGradient();
+            break;
+    }
+
+    glutSwapBuffers();
 }
 
 void Reshape(int width, int height)
 {
-	glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
 }
 
-void Keyboard(unsigned char key, int x, int y)
+void Keyboard(unsigned char key, int, int)
 {
-	switch (key)
-	{
-	case 27:
-		glutLeaveMainLoop();
-		break;
+    switch (key)
+    {
+        case 27:
+        case 'x':
+            glutLeaveMainLoop();
+            break;
 
-	case ' ':
-		printf("SPACE!\n");
-		glutPostRedisplay();
-		break;
-
-	case 'x':
-		glutLeaveMainLoop();
-		break;
-	}
+        case ' ':
+            gScene = (gScene % 3) + 1;
+            printf("Scene: %d\n", gScene);
+            glutPostRedisplay();
+            break;
+    }
 }
 
 int main(int argc, char *argv[])
 {
-	srand(time(NULL));
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitContextVersion(3, 3);
-	glutInitContextProfile(GLUT_CORE_PROFILE);
-	glutInitWindowSize(500, 500);
-	glutCreateWindow("Szablon programu w OpenGL");
-	glutDisplayFunc(DisplayScene);
-	glutReshapeFunc(Reshape);
-	glutKeyboardFunc(Keyboard);
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitContextVersion(3, 3);
+    glutInitContextProfile(GLUT_CORE_PROFILE);
+    glutInitWindowSize(800, 800);
+    glutCreateWindow("Kwadraty: pelny kolor / gradient / gradient2");
 
-	glewExperimental = GL_TRUE;
-	GLenum err = glewInit();
-	if (GLEW_OK != err)
-	{
-		printf("GLEW Error\n");
-		exit(1);
-	}
+    glutDisplayFunc(DisplayScene);
+    glutReshapeFunc(Reshape);
+    glutKeyboardFunc(Keyboard);
 
-	if (!GLEW_VERSION_3_3)
-	{
-		printf("Brak OpenGL 3.3!\n");
-		exit(1);
-	}
+    glewExperimental = GL_TRUE;
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+        printf("GLEW Error\n");
+        return 1;
+    }
 
-	Initialize();
+    if (!GLEW_VERSION_3_3)
+    {
+        printf("Brak OpenGL 3.3!\n");
+        return 1;
+    }
 
-	glutMainLoop();
+    Initialize();
+    glutMainLoop();
 
-	glDeleteProgram(idProgram);
-	glDeleteVertexArrays(1, &idVBO_coord);
-	glDeleteVertexArrays(1, &idVAO);
+    glDeleteVertexArrays(1, &vaoSolid);
+    glDeleteVertexArrays(1, &vaoGradient);
+    glDeleteBuffers(1, &vboCoord);
+    glDeleteBuffers(1, &vboColorSolid);
+    glDeleteBuffers(1, &vboColorGrad);
+    glDeleteProgram(gProgram);
 
-	return 0;
+    return 0;
 }
