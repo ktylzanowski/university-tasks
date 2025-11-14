@@ -6,24 +6,39 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 df = pd.read_csv("iris_big.csv")
 
-X = df[["sepal length (cm)", "sepal width (cm)", "petal length (cm)", "petal width (cm)"]]
-y = df["target_name"].map({"setosa": 0, "versicolor": 1, "virginica": 2})
+X = df[["sepal length (cm)", "sepal width (cm)",
+        "petal length (cm)", "petal width (cm)"]]
+y = df["target_name"].map({"setosa": 0,
+                           "versicolor": 1,
+                           "virginica": 2})
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
 
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-architectures = [(3,), (5, 3), (6, 3)]
+full_architectures = [(4, 2, 1), (4, 3, 1), (4, 3, 3, 1)]
 
-for arch in architectures:
-    print(f"\nSieć o strukturze {arch}")
-    model = MLPClassifier(hidden_layer_sizes=arch, max_iter=1000, random_state=42)
+for arch in full_architectures:
+    hidden = arch[1:-1]
+
+    print(f"\nSieć o strukturze {arch} (hidden_layer_sizes={hidden})")
+
+    model = MLPClassifier(
+        hidden_layer_sizes=hidden,
+        max_iter=1000,
+        random_state=42
+    )
+
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
+
     acc = accuracy_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
+
     print(f"Accuracy: {acc:.4f}")
     print("Macierz błędów:")
     print(cm)
